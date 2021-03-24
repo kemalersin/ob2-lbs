@@ -38,8 +38,8 @@ router.get('/', function (req, res, next) {
               PR.PTYPE=2 AND
               PR.CARDREF=IT.LOGICALREF AND
               PR.CLSPECODE2=CL.SPECODE2 AND
-              IT.CODE='${itemCode}' AND
-              CL.CODE='${clientCode}'
+              (N'' + IT.CODE COLLATE Turkish_100_CI_AS)='${itemCode}' AND
+              (N'' + CL.CODE COLLATE Turkish_100_CI_AS)='${clientCode}'
             ORDER BY
               PR.PRIORITY
           `
@@ -56,9 +56,9 @@ router.get('/', function (req, res, next) {
                   CM.ACTIVE=0 AND       
                   CM.BEGDATE<=CONVERT(date, getdate()) AND
                   CM.ENDDATE>=CONVERT(date, getdate()) AND          
-                  CM.CLIENTCODE='${clientCode}' AND
-                  CL.CAMPCARDREF=CM.LOGICALREF AND                                    
-                  CL.CONDITEMCODE='${itemCode.slice(0, 3)}*'
+                  (N'' + CM.CLIENTCODE COLLATE Turkish_100_CI_AS)='${clientCode}' AND                              
+                  (N'' + CL.CONDITEMCODE COLLATE Turkish_100_CI_AS)='${itemCode.slice(0, 3)}*' AND
+                  CL.CAMPCARDREF=CM.LOGICALREF
                 ORDER BY
                   CL.LINENR
 
@@ -67,7 +67,7 @@ router.get('/', function (req, res, next) {
             priceData = priceData.recordset[0];
 
             var vatRate = (1 + priceData.vat / 100);
-            var vatExcPrice = (priceData.price / vatRate).toFixed(2) * 1;
+            var vatExcPrice = priceData.price / vatRate;
 
             var total = vatExcPrice * amount;
 
@@ -76,10 +76,10 @@ router.get('/', function (req, res, next) {
                 campaign.formula = campaign.formula.replace(/P76/g, vatExcPrice);
                 campaign.formula = campaign.formula.replace(/P2/g, total);
 
-                total -= math.evaluate(campaign.formula);
+                total -= math.round(math.evaluate(campaign.formula), 2);
             });
 
-            priceData.price = total.toFixed(2) * 1 / amount * vatRate;
+            priceData.price = math.round(total / amount * vatRate, 4);
 
             res.send(priceData);
         });
